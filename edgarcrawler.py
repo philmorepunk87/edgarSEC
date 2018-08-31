@@ -1,83 +1,80 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Aug 20 18:15:15 2018
+Created on Thu Aug 30 20:09:26 2018
 
-@author: jcopelan
+@author: copel
 """
 
-import urllib.request as urllib2, os
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Aug 20 18:15:15 2018
+@author: jcopelan
+"""
+#import the urllib and BeautifulSoup library
+import urllib.request as urllib2
 from bs4 import BeautifulSoup as BeautifulSoup
-import pandas as pd
+
 
 # Step 1: Define funtions to download filings
 def get_list(ticker):
+    
+    url_part1 = 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK='
+    url_part2 = '&type=10-K&dateb=&owner=exclude&count=40'
+    secpath = 'https://www.sec.gov/'
+    
+    #make the url to go out to the SEC website, bring in the ticker as well
+    base_url = url_part1 + ticker + url_part2 
+    
+    #open the url and parse it with BeautifulSoup
+    data_page = urllib2.urlopen(base_url)
+    data_soup = BeautifulSoup(data_page,"lxml")
 
-    base_url_part1 = "http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK="
-    base_url_part2 = "&type=&dateb=&owner=&start="
-    base_url_part3 = "&count=100&output=xml"
-    href = []
+    #find all of the a tags with the id = interactiveDataBtn
+    filings = data_soup.find_all('a',id = 'interactiveDataBtn')
     
-    for page_number in range(0,2000,100):
+    #loop through and store the hyperlinks in a list    
+    dllink = []
+    for filing in filings:
+        dllink.append(secpath + filing['href'])
     
-        base_url = base_url_part1 + ticker + base_url_part2 + str(page_number) + base_url_part3
-        
-        sec_page = urllib2.urlopen(base_url)
-        sec_soup = BeautifulSoup(sec_page)
-        
-        filings = sec_soup.findAll('filing')
-        
-        for filing in filings:
-            report_year = int(filing.datefiled.get_text()[0:4])
-            if (filing.type.get_text() == "10-K") & (report_year > 2016):
-                print(filing.filinghref.get_text())
-                href.append(filing.filinghref.get_text())
-    
-    return href
+    return dllink
 
-def download_report(url_list,dir_path):
+def download_report(url_list):
     
-    target_base_url = 'http://www.sec.gov'
+    secpath = 'https://www.sec.gov/'
     
-    # type = 'EX-101.INS'
-    target_file_type = u'EX-101.INS'
-    
+    #loop through the url_list created in the get_list function and find
+    #a tags that have content that say "View Excel Document", this occurs
+    #only once on each webpage thats why the find method is used
+    excelpaths = []
     for report_url in url_list:
-        report_page = urllib2.urlopen(report_url)
-        report_soup = BeautifulSoup(report_page)
-        
-        xbrl_file = report_soup.findAll('tr')
-        
-        for item in xbrl_file:
-            try:
-                if item.findAll('td')[3].get_text() == target_file_type:
-                    if not os.path.exists(dir_path):
-                        os.makedirs(dir_path)
-                             
-                    target_url = target_base_url + item.findAll('td')[2].find('a')['href']
-                    print("Target URL found!")
-                    print("Target URL is:", target_url)
+        excellink = urllib2.urlopen(report_url)
+        excelsoup = BeautifulSoup(excellink, "lxml")
+        paths = excelsoup.find('a', string = 'View Excel Document')
+        excelpaths.append(secpath + paths['href'])
+     
+    #loop through the excelpaths and then download the .xlsx files,
+    #it is setup to download files to the same directory that the script
+    #is executed in
+        for path in excelpaths:
+            target_url = path
+            print("Target URL found!")
+            print("Target URL is:", target_url)
                     
-                    file_name = target_url.split('/')[-1]
-                    print(file_name)
+            file_name = target_url.split('/')[-2] + '.xlsx'
+            print(file_name)
                    
-                    xbrl_report = urllib2.urlopen(target_url)
-                    output = open(os.path.join(dir_path,file_name),'wb')
-                    output.write(xbrl_report.read())
-                    output.close()
-                    
-            except:
-                pass
+            xlsx_report = urllib2.urlopen(target_url)
+            data = xlsx_report.read()
+            with open(file_name, 'wb') as output:
+                output.write(data)
 
-# Step 2: Define funtions to download filings
-# Import tickers
-#TickerFile = pd.read_csv("companylist.csv")
-#Tickers = TickerFile['Symbol'].tolist()
 
-tickers = ['AMGN']
+#supply a list of tickers
+tickers = ['A','AMGN']
 
+#loop through all of the tickers and get the .xlsx files (utilizing the functions
+#above)
 for ticker in tickers:
     url_list= get_list(ticker)
-    base_path = "./Downloaded_Filings"
-    dir_path = base_path + "/"+ticker
-    download_report(url_list,dir_path)
-    
+    download_report(url_list)
