@@ -35,7 +35,7 @@ def get_list(ticker):
     #loop through and store the hyperlinks in a list    
     dllink = []
     for filing in filings:
-        if dllink is not None:
+        if filing is not None:
             dllink.append(secpath + filing['href'])
         else:
             continue
@@ -80,13 +80,14 @@ def download_report(url_list,dl_path):
 #supply a list of tickers
 NYSE = pd.read_csv('NYSETickers.csv')
 tickers = list(NYSE['Symbol'])
-#loop through all of the tickers and get the .xlsx files (utilizing the functions
-#above)
 
 #change dl_path to desired path wherever, make sure directory is created 
 #behorehand else the files wont get written (and the script will keep running
 #because of the exception set up on line 61)
 dl_path = 'C:\\Users\\jcopelan\\OneDrive - Agilent Technologies\\Documents\\Ad Hoc Presentations_Analysis\\edgarSEC\\Downloads\\NYSE\\'
+
+#loop through all of the tickers and get the .xlsx files (utilizing the functions
+#above)
 for ticker in tickers:
     url_list= get_list(ticker)
     if url_list is not None:
