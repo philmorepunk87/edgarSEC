@@ -16,7 +16,7 @@ import pandas as pd
 import os
 
 # Step 1: Define funtions to download filings
-def get_list(ticker):
+def get_link(ticker):
     
     url_part1 = 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK='
     url_part2 = '&type=10-K&dateb=&owner=exclude&count=1'
@@ -30,48 +30,37 @@ def get_list(ticker):
     data_soup = BeautifulSoup(data_page,"lxml")
 
     #find all of the a tags with the id = interactiveDataBtn
-    filings = data_soup.find_all('a',id = 'interactiveDataBtn')
-    
-    #loop through and store the hyperlinks in a list    
-    dllink = []
-    for filing in filings:
-        if filing is not None:
-            dllink.append(secpath + filing['href'])
-        else:
-            continue
-    
+    filing = data_soup.find('a',id = 'interactiveDataBtn')
+ 
+    if filing is not None:
+        dllink = secpath + filing['href']
+    else:
+        dllink = None
     return dllink
 
-def download_report(url_list,dl_path):
+def download_report(url,dl_path):
     
     secpath = 'https://www.sec.gov/'
     
     #loop through the url_list created in the get_list function and find
     #a tags that have content that say "View Excel Document", this occurs
     #only once on each webpage thats why the find method is used
-    excelpaths = []
-    for report_url in url_list:
-        excellink = urllib2.urlopen(report_url)
-        excelsoup = BeautifulSoup(excellink, "lxml")
-        paths = excelsoup.find('a', string = 'View Excel Document')
-        if paths is not None:
-            excelpaths.append(secpath + paths['href'])
-        else:
-            continue
+    excellink = urllib2.urlopen(url)
+    excelsoup = BeautifulSoup(excellink, "lxml")
+    paths = excelsoup.find('a', string = 'View Excel Document')
+    if paths is not None:
+        excelpath = secpath + paths['href']
      
     #only look at the first path to get the last three years of info, can modify
     #this line if more data is needed
     try:
-        target_url = excelpaths[0]
-        print("Target URL found!")
-        print("Target URL is:", target_url)
+        target_url = excelpath
                             
         file_name = ticker + target_url.split('/')[-2] + '.xlsx'
         print(file_name)
                            
         xlsx_report = urllib2.urlopen(target_url)
         data = xlsx_report.read()
-        os.chdir(dl_path)
         with open(file_name, 'wb') as output:
             output.write(data)
     except:
@@ -81,16 +70,18 @@ def download_report(url_list,dl_path):
 NYSE = pd.read_csv('NYSETickers.csv')
 tickers = list(NYSE['Symbol'])
 
-#change dl_path to desired path wherever, make sure directory is created 
-#behorehand else the files wont get written (and the script will keep running
-#because of the exception set up on line 61)
-dl_path = 'C:\\Users\\jcopelan\\OneDrive - Agilent Technologies\\Documents\\Ad Hoc Presentations_Analysis\\edgarSEC\\Downloads\\NYSE\\'
+#change dl_path to desired path, create folder if it doesn't already exist, 
+#then set folder as active directory
+dl_path = 'Downloads\\Test\\'
+if not os.path.exists(dl_path):
+    os.makedirs(dl_path)
+os.chdir(dl_path)
 
 #loop through all of the tickers and get the .xlsx files (utilizing the functions
 #above)
 for ticker in tickers:
-    url_list= get_list(ticker)
-    if url_list is not None:
-        download_report(url_list,dl_path)
+    url = get_link(ticker)
+    if url is not None:
+        download_report(url,dl_path)
     else:
         continue
