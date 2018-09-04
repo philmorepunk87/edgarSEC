@@ -42,6 +42,9 @@ def download_report(url,dl_path):
     
     secpath = 'https://www.sec.gov/'
     
+    #get a list of all the files in the directory
+    dirlist = os.listdir()
+    
     #loop through the url_list created in the get_list function and find
     #a tags that have content that say "View Excel Document", this occurs
     #only once on each webpage thats why the find method is used
@@ -58,11 +61,14 @@ def download_report(url,dl_path):
                             
         file_name = ticker + target_url.split('/')[-2] + '.xlsx'
         print(file_name)
-                           
-        xlsx_report = urllib2.urlopen(target_url)
-        data = xlsx_report.read()
-        with open(file_name, 'wb') as output:
-            output.write(data)
+        
+        #check to make sure filename is not in directory, if it is ignore
+        #to prevent downloaded something that is already there
+        if file_name not in dirlist:
+            xlsx_report = urllib2.urlopen(target_url)
+            data = xlsx_report.read()
+            with open(file_name, 'wb') as output:
+                output.write(data)
     except:
         pass
 
@@ -72,7 +78,8 @@ tickers = list(NYSE['Symbol'])
 
 #change dl_path to desired path, create folder if it doesn't already exist, 
 #then set folder as active directory
-dl_path = 'Downloads\\Test\\'
+dl_path = input('Please enter the directory to save files to (raw text no quotes, \
+                                                              dont forget extra slashes on windows: ')
 if not os.path.exists(dl_path):
     os.makedirs(dl_path)
 os.chdir(dl_path)
