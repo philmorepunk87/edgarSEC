@@ -55,6 +55,7 @@ def parse_files(dl_path):
                                 'Period': period,
                                 'Measure': measure}
                         newdf = pd.DataFrame(data=newd)
+                        # print(company)
                         return newdf
         return None
 
@@ -64,8 +65,7 @@ def parse_files(dl_path):
         #  Load workbook into different sheets. Sometimes (rarely) this fails
         try:
             wb = pd.read_excel(file, sheet_name=None)
-        except Exception as e:
-            print(xls.split('.')[0] + e)
+        except:
             pass
         # Loop through each sheet to find 'research' terms
         for sheet, df in wb.items():

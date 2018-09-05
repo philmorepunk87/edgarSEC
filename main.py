@@ -24,8 +24,10 @@ for ticker in tickers:
     else:
         continue
 
-# create and store final data table
+create and store final data table
 
 final = parse_files(dl_path)
 
-print(final)
+writer = pd.ExcelWriter("NYSE_RD.xlsx")
+final.to_excel(writer, index = False)
+writer.save()
