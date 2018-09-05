@@ -26,17 +26,22 @@ def get_link(ticker):
     base_url = url_part1 + ticker + url_part2
 
     # open the url and parse it with BeautifulSoup
-    data_page = urllib2.urlopen(base_url)
-    data_soup = BeautifulSoup(data_page, "lxml")
-
-    # find all of the a tags with the id = interactiveDataBtn
-    filing = data_soup.find('a', id='interactiveDataBtn')
-
-    if filing is not None:
-        dllink = secpath + filing['href']
-    else:
-        dllink = None
-    return dllink
+    try:
+        data_page = urllib2.urlopen(base_url)
+        data_soup = BeautifulSoup(data_page, "lxml")
+    
+        # find all of the a tags with the id = interactiveDataBtn
+        filing = data_soup.find('a', id='interactiveDataBtn')
+    
+        if filing is not None:
+            dllink = secpath + filing['href']
+        else:
+            dllink = None
+        return dllink
+    except (urllib2.HTTPError, TypeError) as e:
+        print(e)
+        pass
+        
 
 
 def download_report(url,dl_path, ticker):
@@ -53,12 +58,14 @@ def download_report(url,dl_path, ticker):
     excellink = urllib2.urlopen(url)
     excelsoup = BeautifulSoup(excellink, "lxml")
     paths = excelsoup.find('a', string='View Excel Document')
-    if paths is not None:
-        excelpath = secpath + paths['href']
+    
 
     # only look at the first path to get the last three years of info,
     # can modify this line if more data is needed
     try:
+        if paths is not None:
+            excelpath = secpath + paths['href']
+            
         target_url = excelpath
 
         file_name = ticker + '.' + target_url.split('/')[-2] + '.xlsx'
@@ -70,7 +77,8 @@ def download_report(url,dl_path, ticker):
             data = xlsx_report.read()
             with open(file_name, 'wb') as output:
                 output.write(data)
-    except:
+    except (urllib2.HTTPError, TypeError) as e:
+        print(e)
         pass
 
     return
