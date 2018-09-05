@@ -5,14 +5,12 @@ import os
 
 # supply a list of tickers
 
-tickers = ['A', 'AMGN', 'AAPL', 'MMM']
-
-# NYSE = pd.read_csv('NYSETickers.csv')
-# tickers = list(NYSE['Symbol'])
+NYSE = pd.read_csv('NYSETickers.csv')
+tickers = list(NYSE['Symbol'])
 
 # change dl_path to desired path, create folder if it doesn't already exist, 
 # then set folder as active directory
-dl_path = os.path.join("C:", os.sep, "Users", "jephilli", "Documents", "GitHub", "edgarSEC", "Downloads")
+dl_path = os.path.join("C:", os.sep, "Users", "jephilli", "Documents", "Data", "SEC Data", "NYSE")
 if not os.path.exists(dl_path):
     os.makedirs(dl_path)
 os.chdir(dl_path)
