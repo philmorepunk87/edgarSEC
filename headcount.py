@@ -17,6 +17,7 @@ Originally created on Thu Aug 30 20:09:26 2018
 
 from bs4 import BeautifulSoup
 import urllib.request as urllib2
+import http.client as http
 import pandas as pd
 
 
@@ -45,11 +46,11 @@ def get_headcount(ticker):
         
         return values
     
-    except (urllib2.HTTPError,urllib2.URLError, AttributeError, ValueError) as e:
+    except (urllib2.HTTPError,urllib2.URLError, AttributeError, ValueError, http.IncompleteRead) as e:
         print(e)
 
-NYSE = pd.read_csv('NYSETickers.csv')
-tickers = list(NYSE['Symbol'])
+AMEX = pd.read_csv('AMEXTickers.csv')
+tickers = list(AMEX['Symbol'])
 
 financials = []
 
@@ -66,7 +67,7 @@ for ticker in tickers:
 
 result = pd.concat(financials, axis=0)
 
-result.to_csv('NYSE_Headcount.csv', index=False)       
+result.to_csv('AMEX_Headcount.csv', index=False)       
 
 
 
