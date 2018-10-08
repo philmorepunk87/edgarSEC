@@ -34,6 +34,7 @@ NYSE_HC = pd.read_csv('Data/NYSE_Headcount.csv')
 headcount = pd.concat([NASDAQ_HC, AMEX_HC, NYSE_HC])
 financials = financials.merge(headcount, on = "Ticker", how="outer")
 financials = financials.drop_duplicates(subset = ["Name","Date"])
+financials["Name"] = financials["Name"].apply(lambda x: str(x).upper())
 
 # read in the global party data
 globalparties =  list(pd.read_table('Data/GlobalParties.txt')["GlobalPartyName"])
@@ -59,14 +60,14 @@ globalpartiesfiltered  = [" ".join(x) for x in globalpartiesfiltered]
 ratiolist = []
 for uniquename in uniquenames:
     for globalparty in globalpartiesfiltered:
-        if ratio(globalparty, uniquename) > 0.90:
+        if ratio(globalparty, uniquename) > 0.97:
             ratiolist.append(ratio(globalparty, uniquename))
         else:
             ratiolist.append(-100)
 ratiolist = np.reshape(ratiolist, (len(uniquenames),len(globalparties)))
 maxindeces = np.argmax(ratiolist, axis = 1)
-#[ratio.max()  for ratio in ratiolist]
 
+#make a Global Party list to store the likely global party from the  levenshtein ratios above
 GPLList = []
 for index in maxindeces:
     GPLList.append(globalparties[index])
@@ -75,7 +76,9 @@ matchlists = pd.DataFrame(data={"CompanyName": uniquenames_original, "GlobalPart
 #get rid of the no match index which was assigned as '1 Government of the United States'
 matchlists = matchlists[matchlists['GlobalParty'] != '1 GOVERNMENT OF THE UNITED STATES']
 financials = financials.merge(matchlists, left_on='Name', right_on='CompanyName', how="outer").drop(labels=['CompanyName'], axis=1)
-financials.to_csv('/Data/FinancialData.csv')
+financials =  financials.dropna(subset = ["GlobalParty"], axis = 0)
+financials =  financials.dropna(subset = ["Date"], axis = 0)
+financials.to_csv('Data/FinancialData.csv')
 #add in the global party name to the financial data
 
 stop = timeit.default_timer()
