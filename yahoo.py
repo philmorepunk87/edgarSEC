@@ -45,8 +45,8 @@ def financials_soup(ticker_symbol, statement="is", quarterly=False):
         return BeautifulSoup(requests.get(url).text, "html.parser")
     return sys.exit("Invalid financial statement code '" + statement + "' passed.")
 
-NASDAQ = pd.read_csv('Tickers/NASDAQTickers.csv')
-tickers = list(NASDAQ['Symbol'])
+AMEX = pd.read_csv('Tickers/AMEXTickers.csv')
+tickers = list(AMEX['Symbol'])
 
 financials = []
 
@@ -55,13 +55,17 @@ for ticker in tickers:
     incomestatment_soup = financials_soup(ticker, "is")
     date = periodic_figure_values(incomestatment_soup, "Revenue")
     research = periodic_figure_values(incomestatment_soup, "Research Development")
+    opex = periodic_figure_values(incomestatment_soup,"Total Operating Expenses")
+    revenue = periodic_figure_values(incomestatment_soup,"Total Revenue")
     if(date != None):
         newd = {'Ticker': ticker,
                 'Date': date,
-                'Research & Development Cost': research}
+                'Research & Development Cost': research,
+                'Total Operating Expences': opex,
+                'Revenue': revenue}
         newdf = pd.DataFrame(data=newd)
         financials.append(newdf)
 
 result = pd.concat(financials, axis=0)
 
-result.to_csv('Data/NASDAQ_RD.csv', index=False)
+result.to_csv('Data/AMEX_RD.csv', index=False)
