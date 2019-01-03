@@ -49,25 +49,7 @@ def get_headcount(ticker):
     except (urllib2.HTTPError,urllib2.URLError, AttributeError, ValueError, http.IncompleteRead) as e:
         print(e)
 
-AMEX = pd.read_csv('AMEXTickers.csv')
-tickers = list(AMEX['Symbol'])
-
-financials = []
-
-for ticker in tickers:
-    print(ticker)
-    headcount = get_headcount(ticker)
-    if headcount is not None:
-        newd = {'Ticker': ticker, 'EmployeeCount': headcount}
-        newdf = pd.DataFrame(data=newd)
-        financials.append(newdf)
-    else:
-        continue
-    
-
-result = pd.concat(financials, axis=0)
-
-result.to_csv('AMEX_Headcount.csv', index=False)       
+   
 
 
 

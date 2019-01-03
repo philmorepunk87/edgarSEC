@@ -9,9 +9,10 @@ import pandas as pd
 from Levenshtein import ratio
 import numpy as np
 import timeit
+from yahoo import financials_soup, periodic_figure_values
+from headcount import get_headcount
 
 start = timeit.default_timer()
-
 
 # read in the tickers and concatenate them all together
 NASDAQ =  pd.read_csv('Tickers/NASDAQTickers.csv')
@@ -19,19 +20,51 @@ AMEX = pd.read_csv('Tickers/AMEXTickers.csv')
 NYSE = pd.read_csv('Tickers/NYSETickers.csv')
 tickers = pd.concat([NASDAQ,AMEX,NYSE])
 
+#delete out tickers without a market cap
+tickers = tickers[tickers['MarketCap'] != 'n/a']
+tickers = list(tickers['Symbol'])
+# loop over the tickers and store the financial and headcount data in various
+# data frames   
+financials = []
+headcount = []
+
+for ticker in tickers:
+    print(ticker)
+    incomestatment_soup = financials_soup(ticker, "is")
+    date = periodic_figure_values(incomestatment_soup, "Revenue")
+    research = periodic_figure_values(incomestatment_soup, "Research Development")
+    opex = periodic_figure_values(incomestatment_soup,"Total Operating Expenses")
+    revenue = periodic_figure_values(incomestatment_soup,"Total Revenue")
+    if(date != None):
+        newd = {'Ticker': ticker,
+                'Date': date,
+                'Research & Development Cost': research,
+                'Total Operating Expences': opex,
+                'Revenue': revenue}
+        newdf = pd.DataFrame(data=newd)
+        financials.append(newdf)
+    headcount = get_headcount(ticker)
+    if headcount is not None:
+        head = {'Ticker': ticker, 'EmployeeCount': headcount}
+        headdf = pd.DataFrame(data=head)
+        headcount.append(headdf)
+    else:
+        continue
+
+financialresult = pd.concat(financials, axis=0)
+financialresult.to_csv('Data/Financials_RD.csv', index=False)
+
+headcountresult = pd.concat(headcount, axis=0)
+headcountresult.to_csv('Data/Headcount.csv')
+
+
 # read in the financial data of interest and join to the tickers
-NASDAQ_RD =  pd.read_csv('Data/NASDAQ_RD.csv')
-AMEX_RD = pd.read_csv('Data/AMEX_RD.csv')
-NYSE_RD = pd.read_csv('Data/NYSE_RD.csv')
-financials = pd.concat([NASDAQ_RD, AMEX_RD, NYSE_RD])
+financials = pd.read_csv('Data/Financials_RD.csv')
 financials = financials.merge(tickers[["Name","Symbol"]], left_on='Ticker', right_on='Symbol', how="outer", copy=False).drop(labels=['Symbol'], axis=1)
 
 
 #read in the headcount data and join to the rest
-NASDAQ_HC =  pd.read_csv('Data/NASDAQ_Headcount.csv')
-AMEX_HC = pd.read_csv('Data/AMEX_Headcount.csv')
-NYSE_HC = pd.read_csv('Data/NYSE_Headcount.csv')
-headcount = pd.concat([NASDAQ_HC, AMEX_HC, NYSE_HC])
+headcount = pd.read_csv('Data/Headcount.csv')
 financials = financials.merge(headcount, on = "Ticker", how="outer")
 financials = financials.drop_duplicates(subset = ["Name","Date"])
 financials["Name"] = financials["Name"].apply(lambda x: str(x).upper())
@@ -45,13 +78,13 @@ corporations = ["INC.", "INCORPORATED", "LIMITED", "LTD.", "CORPORATION", "PLC",
                 "SA", "LTD", "INC", "HOLDINGS", "COMPANY", "S.A", "GMBH", "AG", "L.P",
                 "NV", "S.A.B", "SAB", "DE", "LLC", "", " ", "LP", "CO", "CO.","HOLDINGS,", "L.P.",
                 "HOLDING", "S.A.", "PHARMA", "PHARMACEUTICALS", "THERAPEUTICS", "RESEARCH", "BIOLOGICS",
-                "SOLUTIONS","TECHNOLOGIES","SCIENCES"]
+                "SOLUTIONS","TECHNOLOGIES","SCIENCES", '&', 'L.L.C', 'N.V']
 
 #make globalparties and unique names a list of lists seperated by words
 uniquenames = [x.split(' ') for x in uniquenames_original]
 globalpartiesfiltered = [x.split(' ')[1:] for x in globalparties]
-uniquenames = [[x for x in corpnames if x not in corporations] for corpnames in uniquenames]
 uniquenames = [[x.replace(',','') for x in corpnames if x not in corporations] for corpnames in uniquenames]
+uniquenames = [[x for x in corpnames if x not in corporations] for corpnames in uniquenames]
 globalpartiesfiltered  = [[x for x in corpnames if x not in corporations] for corpnames in globalpartiesfiltered]
 uniquenames = [" ".join(x) for x in uniquenames]
 globalpartiesfiltered  = [" ".join(x) for x in globalpartiesfiltered]
@@ -60,7 +93,7 @@ globalpartiesfiltered  = [" ".join(x) for x in globalpartiesfiltered]
 ratiolist = []
 for uniquename in uniquenames:
     for globalparty in globalpartiesfiltered:
-        if ratio(globalparty, uniquename) > 0.97:
+        if ratio(globalparty, uniquename) >= 0.95:
             ratiolist.append(ratio(globalparty, uniquename))
         else:
             ratiolist.append(-100)
@@ -78,7 +111,7 @@ matchlists = matchlists[matchlists['GlobalParty'] != '1 GOVERNMENT OF THE UNITED
 financials = financials.merge(matchlists, left_on='Name', right_on='CompanyName', how="outer").drop(labels=['CompanyName'], axis=1)
 financials =  financials.dropna(subset = ["GlobalParty"], axis = 0)
 financials =  financials.dropna(subset = ["Date"], axis = 0)
-financials.to_csv('Data/FinancialData.csv')
+
 #add in the global party name to the financial data
 
 stop = timeit.default_timer()
